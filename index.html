@@ -84,58 +84,12 @@
       <span class="font-display font-semibold text-lg tracking-tight whitespace-nowrap">Mizan Screener</span>
     </div>
     <div class="flex flex-wrap items-center justify-end gap-y-2 gap-x-3">
-      <div id="authLoggedOutHeader" class="flex items-center gap-3">
-        <button id="authGoToLoginBtn" class="text-xs font-mono text-ink/60 hover:text-emerald-800 transition-colors whitespace-nowrap">Se connecter</button>
-      </div>
-      <div id="authLoggedInHeader" class="hidden items-center gap-3">
-        <span class="text-xs font-mono text-ink/60 whitespace-nowrap">Bonjour, <span id="authUserNameHeader" class="font-medium text-ink"></span></span>
-        <button id="authSignOutBtn" class="text-xs font-mono text-haram-600 hover:text-haram-600/70 whitespace-nowrap">Se déconnecter</button>
-      </div>
       <button id="watchlistToggle" class="flex items-center gap-1.5 rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs font-mono hover:border-emerald-600 transition-colors whitespace-nowrap shrink-0">
         <span class="text-amber-600">★</span> Watchlist <span id="watchlistCount" class="text-ink/40">(0)</span>
       </button>
     </div>
   </div>
 </header>
-
-<!-- ============ PAGE DE CONNEXION (plein écran) ============ -->
-<section id="authPage" class="hidden min-h-[calc(100vh-73px)] flex items-center justify-center px-6 py-16">
-  <div class="w-full max-w-md">
-    <div class="flex rounded-full bg-ink/5 p-1 text-sm font-medium mb-8">
-      <button data-auth-tab="signin" class="auth-tab-btn flex-1 px-4 py-2 rounded-full transition-colors">Se connecter</button>
-      <button data-auth-tab="signup" class="auth-tab-btn flex-1 px-4 py-2 rounded-full transition-colors">Créer un compte</button>
-    </div>
-
-    <h1 class="font-display text-2xl font-semibold mb-1" id="authPageTitle">Content de vous revoir</h1>
-    <p class="text-sm text-ink/50 mb-8" id="authPageSubtitle">Connectez-vous pour retrouver votre watchlist sur tous vos appareils.</p>
-
-    <form id="authForm" class="space-y-4">
-      <div id="authNameField" class="hidden">
-        <label class="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1.5">Nom complet</label>
-        <input id="authNameInput" type="text" autocomplete="name" placeholder="Amina Diallo"
-          class="w-full rounded-lg border border-ink/15 px-4 py-3 text-sm focus:outline-none focus:border-emerald-600">
-      </div>
-      <div>
-        <label class="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1.5">Email</label>
-        <input id="authEmailInput" type="email" autocomplete="email" placeholder="vous@exemple.com" required
-          class="w-full rounded-lg border border-ink/15 px-4 py-3 text-sm focus:outline-none focus:border-emerald-600">
-      </div>
-      <div>
-        <label class="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1.5">Mot de passe</label>
-        <input id="authPasswordInput" type="password" autocomplete="current-password" placeholder="••••••••" required minlength="6"
-          class="w-full rounded-lg border border-ink/15 px-4 py-3 text-sm focus:outline-none focus:border-emerald-600">
-        <p id="authPasswordHint" class="hidden text-xs text-ink/40 mt-1.5">Au moins 6 caractères.</p>
-      </div>
-
-      <button type="submit" id="authSubmitBtn" class="w-full rounded-lg bg-emerald-800 text-sand font-medium text-sm py-3 hover:bg-emerald-700 transition-colors">
-        Se connecter
-      </button>
-      <p id="authStatus" class="text-xs font-mono text-center min-h-[1rem]"></p>
-    </form>
-
-    <button id="authBackBtn" class="mt-8 text-xs font-mono text-ink/40 hover:text-ink/70 transition-colors">Continuer sans compte →</button>
-  </div>
-</section>
 
 <!-- ============ HERO / SEARCH ============ -->
 <section id="heroSection" class="max-w-5xl mx-auto px-6 pt-14 pb-10">
@@ -605,138 +559,19 @@ document.getElementById('searchBtn').addEventListener('click', ()=> renderResult
 searchInput.addEventListener('keydown', e=>{ if(e.key==='Enter') renderResult(searchInput.value.split(' — ')[0]); });
 
 /* =========================================================================
-   4) AUTHENTIFICATION — Supabase, email + mot de passe, page dédiée
+   4) AUTHENTIFICATION — désactivée pour l'instant (retirée à la demande,
+   prévue pour une réintroduction future). Le client Supabase reste défini
+   et dormant : currentUser ne sera jamais renseigné tant qu'aucun code ne
+   l'active, donc toute la couche watchlist plus bas retombe automatiquement
+   sur son repli localStorage (mode invité) sans rien à modifier là-bas.
    ========================================================================= */
 const SUPABASE_URL = "https://gmkxbudidkbsenjondcz.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_bC-wXjtIdbF-npmfmeFpqg_Vl4r77yD";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
-let authMode = 'signin';
 
-const authPageEl = document.getElementById('authPage');
-const heroSectionEl = document.getElementById('heroSection');
-
-function showAuthPage(){
-  heroSectionEl.classList.add('hidden');
-  resultZone.classList.add('hidden');
-  emptyZone.classList.add('hidden');
-  watchlistZone.classList.add('hidden');
-  authPageEl.classList.remove('hidden');
-}
-function hideAuthPage(){
-  authPageEl.classList.add('hidden');
-  heroSectionEl.classList.remove('hidden');
-  emptyZone.classList.remove('hidden');
-}
-
-function setAuthTab(mode){
-  authMode = mode;
-  document.querySelectorAll('.auth-tab-btn').forEach(btn=>{
-    const active = btn.dataset.authTab === mode;
-    btn.classList.toggle('bg-emerald-800', active);
-    btn.classList.toggle('text-sand', active);
-    btn.classList.toggle('text-ink/60', !active);
-  });
-  const nameField = document.getElementById('authNameField');
-  const pwHint = document.getElementById('authPasswordHint');
-  const pwInput = document.getElementById('authPasswordInput');
-  if(mode === 'signup'){
-    nameField.classList.remove('hidden');
-    pwHint.classList.remove('hidden');
-    document.getElementById('authPageTitle').textContent = "Créer votre compte";
-    document.getElementById('authPageSubtitle').textContent = "Votre watchlist vous suivra sur tous vos appareils.";
-    document.getElementById('authSubmitBtn').textContent = "Créer mon compte";
-    pwInput.setAttribute('autocomplete', 'new-password');
-  } else {
-    nameField.classList.add('hidden');
-    pwHint.classList.add('hidden');
-    document.getElementById('authPageTitle').textContent = "Content de vous revoir";
-    document.getElementById('authPageSubtitle').textContent = "Connectez-vous pour retrouver votre watchlist sur tous vos appareils.";
-    document.getElementById('authSubmitBtn').textContent = "Se connecter";
-    pwInput.setAttribute('autocomplete', 'current-password');
-  }
-  document.getElementById('authStatus').textContent = "";
-}
-document.querySelectorAll('.auth-tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=> setAuthTab(btn.dataset.authTab));
-});
-setAuthTab('signin');
-
-document.getElementById('authGoToLoginBtn').addEventListener('click', ()=>{
-  setAuthTab('signin');
-  showAuthPage();
-});
-document.getElementById('authBackBtn').addEventListener('click', ()=> hideAuthPage());
-
-document.getElementById('authForm').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const statusEl = document.getElementById('authStatus');
-  const submitBtn = document.getElementById('authSubmitBtn');
-  const email = document.getElementById('authEmailInput').value.trim();
-  const password = document.getElementById('authPasswordInput').value;
-  const name = document.getElementById('authNameInput').value.trim();
-
-  const setStatus = (msg, tone) => {
-    statusEl.textContent = msg;
-    statusEl.className = `text-xs font-mono text-center min-h-[1rem] ${tone === 'error' ? 'text-haram-600' : tone === 'ok' ? 'text-emerald-700' : 'text-ink/40'}`;
-  };
-
-  if(!email || !password){ setStatus("Email et mot de passe requis.", "error"); return; }
-  if(authMode === 'signup' && !name){ setStatus("Le nom est requis.", "error"); return; }
-
-  submitBtn.disabled = true;
-  setStatus(authMode === 'signup' ? "Création du compte…" : "Connexion…");
-
-  const result = authMode === 'signup'
-    ? await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: name } } })
-    : await supabaseClient.auth.signInWithPassword({ email, password });
-
-  submitBtn.disabled = false;
-
-  if(result.error){ setStatus(result.error.message, "error"); return; }
-
-  if(authMode === 'signup' && !result.data.session){
-    // Selon la configuration du projet, une confirmation par email peut être requise avant la 1ère connexion.
-    setStatus("Compte créé — vérifiez votre email pour confirmer, puis connectez-vous.", "ok");
-    return;
-  }
-
-  hideAuthPage();
-});
-
-function updateAuthUI(){
-  const loggedOutHeader = document.getElementById('authLoggedOutHeader');
-  const loggedInHeader = document.getElementById('authLoggedInHeader');
-  if(currentUser){
-    loggedOutHeader.classList.add('hidden');
-    loggedInHeader.classList.remove('hidden');
-    loggedInHeader.classList.add('flex');
-    document.getElementById('authUserNameHeader').textContent = currentUser.user_metadata?.full_name || currentUser.email;
-  } else {
-    loggedOutHeader.classList.remove('hidden');
-    loggedInHeader.classList.add('hidden');
-    loggedInHeader.classList.remove('flex');
-  }
-}
-
-document.getElementById('authSignOutBtn').addEventListener('click', async ()=>{
-  await supabaseClient.auth.signOut();
-});
-
-supabaseClient.auth.onAuthStateChange(async (event, session)=>{
-  currentUser = session?.user || null;
-  updateAuthUI();
-  if(event === 'SIGNED_IN'){
-    await mergeLocalIntoAccount(); // récupère la watchlist invité éventuelle dans le compte
-  }
-  await updateWatchlistCount();
-  if(!watchlistZone.classList.contains('hidden')) await renderWatchlistPanel();
-});
-
-// ---- écran de démarrage : vert + logo, puis bascule vers connexion (ou
-// directement l'app si une session est déjà active — pas de reconnexion
-// forcée à chaque visite pour quelqu'un déjà connecté) ----
+// ---- écran de démarrage : vert + logo, puis affichage direct de l'app ----
 function hideSplash(){
   const splash = document.getElementById('splashScreen');
   if(!splash) return;
@@ -745,17 +580,8 @@ function hideSplash(){
 }
 
 async function initEntryFlow(){
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  currentUser = session?.user || null;
-  updateAuthUI();
-
   await new Promise(res => setTimeout(res, 1200)); // durée minimale d'affichage du splash
   hideSplash();
-
-  if(!currentUser){
-    setAuthTab('signin');
-    showAuthPage();
-  }
 }
 initEntryFlow();
 
