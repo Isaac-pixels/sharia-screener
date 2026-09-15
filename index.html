@@ -442,6 +442,19 @@ function gaugeBar(label, value, threshold, passed, unit="%"){
     </div>`;
 }
 
+// Calculateur de purification des dividendes : recalcule en temps réel à
+// chaque frappe. `rate` (le taux de revenus impurs de l'action affichée)
+// est injecté directement dans l'attribut oninput au moment du rendu de la
+// fiche, donc cette fonction reste pure et n'a pas besoin d'état global.
+function updatePurificationCalc(rate){
+  const input = document.getElementById('purificationDividendInput');
+  const output = document.getElementById('purificationAmountOutput');
+  if(!input || !output) return;
+  const dividends = parseFloat(input.value);
+  const amount = (isNaN(dividends) || dividends < 0) ? 0 : dividends * (rate / 100);
+  output.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+}
+
 async function renderResult(query){
   let raw;
   watchlistZone.classList.add('hidden');
@@ -536,13 +549,29 @@ async function renderResult(query){
       </div>` : ``}
 
       ${r.needsPurification ? `
-      <!-- purification ticket -->
-      <div class="mx-6 sm:mx-8 mb-8 rounded-xl border border-amber-600/30 bg-amber-100/60 px-5 py-4 flex items-start gap-4">
-        <div class="w-9 h-9 rounded-full bg-amber-600 text-sand flex items-center justify-center font-display font-bold text-sm shrink-0">%</div>
-        <div>
-          <p class="font-display font-semibold text-sm text-amber-800">Purification requise sur les dividendes</p>
-          <p class="text-sm text-ink/70 mt-1">Cette action est conforme mais génère une part de revenu non-conforme. Reversez à la charité (sans intention de récompense) :</p>
-          <p class="font-mono text-2xl font-semibold text-amber-700 mt-2">${r.impureRatio.toFixed(2)}% <span class="text-sm font-normal text-ink/50">du dividende brut perçu par action</span></p>
+      <!-- calculateur de purification des dividendes -->
+      <div class="mx-6 sm:mx-8 mb-8 rounded-xl border-2 border-amber-400 bg-amber-50/70 overflow-hidden">
+        <div class="px-5 py-4 border-b border-amber-400/40 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-amber-500 text-sand flex items-center justify-center font-display font-bold text-sm shrink-0">%</div>
+          <div>
+            <p class="font-display font-semibold text-sm text-amber-800">Calculateur de purification des dividendes</p>
+            <p class="text-xs text-ink/50 font-mono mt-0.5">Taux de revenus non conformes retenu : ${r.impureRatio.toFixed(2)}%</p>
+          </div>
+        </div>
+        <div class="px-5 py-5">
+          <label class="block text-xs font-mono uppercase tracking-wide text-ink/50 mb-1.5">Total des dividendes en espèces reçus (USD)</label>
+          <input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" id="purificationDividendInput"
+            oninput="updatePurificationCalc(${r.impureRatio})"
+            class="w-full rounded-lg border border-amber-400/50 bg-white px-4 py-3 text-sm font-mono focus:outline-none focus:border-amber-600">
+
+          <div class="mt-4 rounded-lg bg-amber-100/80 px-4 py-3">
+            <p class="text-xs font-mono uppercase tracking-wide text-amber-700/70 mb-1">Montant à purifier / donner</p>
+            <p class="font-mono text-2xl font-semibold text-amber-800" id="purificationAmountOutput">$0.00</p>
+          </div>
+
+          <p class="text-xs text-ink/60 mt-4 leading-relaxed">
+            Ce montant doit être reversé à une œuvre caritative et ne peut pas être conservé comme bénéfice du fonds.
+          </p>
         </div>
       </div>` : ``}
 
@@ -758,4 +787,3 @@ updateWatchlistCount();
 </script>
 </body>
 </html>
-
